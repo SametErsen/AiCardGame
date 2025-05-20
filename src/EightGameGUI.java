@@ -85,6 +85,7 @@ class ComputerAI {
         Card bestToDiscard = null;
 
 
+
         for (Card discard : all) {
             List<Card> temp = new ArrayList<>(all);
             temp.remove(discard);
