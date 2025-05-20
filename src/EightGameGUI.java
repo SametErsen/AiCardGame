@@ -1,8 +1,7 @@
-import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 import java.util.*;
 import java.util.List;
+import javax.swing.*;
 
 public class EightGameGUI {
     public static void main(String[] args) {
@@ -30,7 +29,7 @@ class Card {
 }
 
 class Deck {
-    private final List<Card> cards = new ArrayList<>();
+    final List<Card> cards = new ArrayList<>();
     private final String[] suits = {"♠", "♥", "♦", "♣"};
     private final String[] ranks = {"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"};
 
@@ -77,40 +76,61 @@ class Player {
 }
 
 class ComputerAI {
-    public static Card chooseCardToDiscard(Player computer, Card newCard, int targetCount) {
+    public static Card chooseCardToDiscard(Player computer, Player player, Card newCard, int targetCount,
+                                           List<Card> computerDiscardedCards, List<Card> playerDiscardedCards) {
         List<Card> all = new ArrayList<>(computer.hand);
         all.add(newCard);
 
         int bestScore = Integer.MIN_VALUE;
         Card bestToDiscard = null;
 
-
-
         for (Card discard : all) {
             List<Card> temp = new ArrayList<>(all);
             temp.remove(discard);
-            int score = evaluateHand(temp);
+            int score = evaluateHand(temp, computerDiscardedCards, playerDiscardedCards);
             if (score > bestScore) {
                 bestScore = score;
                 bestToDiscard = discard;
             }
         }
-
         return bestToDiscard;
     }
 
-    private static int evaluateHand(List<Card> hand) {
+    private static int evaluateHand(List<Card> hand, List<Card> computerDiscardedCards, List<Card> playerDiscardedCards) {
         int score = 0;
+
+        List<Card> allDiscardedCards = new ArrayList<>();
+        allDiscardedCards.addAll(hand);
+        allDiscardedCards.addAll(computerDiscardedCards);
+        allDiscardedCards.addAll(playerDiscardedCards);
+
+        Deck deck = new Deck();
+        Iterator<Card> it = deck.cards.iterator();
+        while (it.hasNext()) {
+            Card d = it.next();
+            for (Card c : allDiscardedCards) {
+                if (d.toString().equals(c.toString())) {
+                    it.remove();
+                    break;
+                }
+            }
+        }
 
         Map<String, Integer> suitCount = new HashMap<>();
         for (Card c : hand) {
             suitCount.put(c.suit, suitCount.getOrDefault(c.suit, 0) + 1);
         }
-        int maxSuitCount = Collections.max(suitCount.values());
-        score += maxSuitCount * 10; // Aynı suit sayısı öncelikli
+
+        String mostCommonSuit = Collections.max(suitCount.entrySet(), Map.Entry.comparingByValue()).getKey();
+        int maxSuitCount = suitCount.get(mostCommonSuit);
+        score += maxSuitCount * 10;
+
+        long matchingSuitLeft = deck.cards.stream().filter(c -> c.suit.equals(mostCommonSuit)).count();
+        double ratio = (double) matchingSuitLeft / deck.cards.size();
+        score += (int) (ratio * 10);
 
         int totalPoints = hand.stream().mapToInt(c -> c.point).sum();
-        score -= totalPoints; // Toplam puan ne kadar azsa o kadar iyi
+        score -= totalPoints;
 
         return score;
     }
@@ -128,6 +148,8 @@ class GameGUI extends JFrame {
     JButton startHard = new JButton("Zor Başlat");
     Card currentCard;
     int levelTarget = 3;
+    List<Card> computerDiscards = new ArrayList<>();
+    List<Card> playerDiscards = new ArrayList<>();
 
     public GameGUI() {
         setTitle("8-Game");
@@ -172,6 +194,8 @@ class GameGUI extends JFrame {
         levelTarget = target;
         player.hand.clear();
         computer.hand.clear();
+        computerDiscards.clear();
+        playerDiscards.clear();
         deck = new Deck();
         info.setText("");
         playerPanel.removeAll();
@@ -210,6 +234,7 @@ class GameGUI extends JFrame {
                 for (Card k : temp) {
                     if (!k.toString().equals(c.toString())) player.drawCard(k);
                 }
+                playerDiscards.add(c);
                 computerTurn();
             });
             playerPanel.add(b);
@@ -238,9 +263,10 @@ class GameGUI extends JFrame {
             return;
         }
         info.append("Bilgisayar yeni kart çekti: " + compCard + "\n");
-        Card discard = ComputerAI.chooseCardToDiscard(computer, compCard, levelTarget);
+        Card discard = ComputerAI.chooseCardToDiscard(computer, player, compCard, levelTarget, computerDiscards, playerDiscards);
         computer.hand.add(compCard);
         computer.hand.remove(discard);
+        computerDiscards.add(discard);
         info.append("Bilgisayar " + discard + " kartını attı.\n");
 
         if (player.hasSuitCount(player.mostCommonSuit(), levelTarget)) {
@@ -267,9 +293,16 @@ class GameGUI extends JFrame {
     }
 
     void disableAll() {
-        playerPanel.removeAll();
-        computerPanel.removeAll();
-        revalidate();
-        repaint();
+        setComponentsEnabled(playerPanel, false);
+        setComponentsEnabled(computerPanel, false);
+    }
+
+    private void setComponentsEnabled(Container container, boolean enabled) {
+        for (Component component : container.getComponents()) {
+            component.setEnabled(enabled);
+            if (component instanceof Container) {
+                setComponentsEnabled((Container) component, enabled);
+            }
+        }
     }
 }
