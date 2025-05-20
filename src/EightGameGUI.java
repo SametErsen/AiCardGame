@@ -84,6 +84,7 @@ class ComputerAI {
         int bestScore = Integer.MIN_VALUE;
         Card bestToDiscard = null;
 
+
         for (Card discard : all) {
             List<Card> temp = new ArrayList<>(all);
             temp.remove(discard);
