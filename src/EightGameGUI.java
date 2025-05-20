@@ -1,5 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 import java.util.*;
 import java.util.List;
 
@@ -25,7 +26,6 @@ class Card {
 
     public String toString() {
         return rank + suit;
-
     }
 }
 
@@ -78,28 +78,39 @@ class Player {
 
 class ComputerAI {
     public static Card chooseCardToDiscard(Player computer, Card newCard, int targetCount) {
-        List<Card> temp = new ArrayList<>(computer.hand);
-        temp.add(newCard);
-        String targetSuit = computer.mostCommonSuit();
-        Card toDiscard = null;
-        int maxPoint = -1;
-        for (Card c : temp) {
-            if (!c.suit.equals(targetSuit)) {
-                if (c.point > maxPoint) {
-                    toDiscard = c;
-                    maxPoint = c.point;
-                }
+        List<Card> all = new ArrayList<>(computer.hand);
+        all.add(newCard);
+
+        int bestScore = Integer.MIN_VALUE;
+        Card bestToDiscard = null;
+
+        for (Card discard : all) {
+            List<Card> temp = new ArrayList<>(all);
+            temp.remove(discard);
+            int score = evaluateHand(temp);
+            if (score > bestScore) {
+                bestScore = score;
+                bestToDiscard = discard;
             }
         }
-        if (toDiscard == null) {
-            for (Card c : temp) {
-                if (c.point > maxPoint) {
-                    toDiscard = c;
-                    maxPoint = c.point;
-                }
-            }
+
+        return bestToDiscard;
+    }
+
+    private static int evaluateHand(List<Card> hand) {
+        int score = 0;
+
+        Map<String, Integer> suitCount = new HashMap<>();
+        for (Card c : hand) {
+            suitCount.put(c.suit, suitCount.getOrDefault(c.suit, 0) + 1);
         }
-        return toDiscard;
+        int maxSuitCount = Collections.max(suitCount.values());
+        score += maxSuitCount * 10; // Aynı suit sayısı öncelikli
+
+        int totalPoints = hand.stream().mapToInt(c -> c.point).sum();
+        score -= totalPoints; // Toplam puan ne kadar azsa o kadar iyi
+
+        return score;
     }
 }
 
