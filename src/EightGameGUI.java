@@ -76,9 +76,10 @@ class Player {
 }
 
 class ComputerAI {
-    public static Card chooseCardToDiscard(Player computer, Player player, Card newCard, int targetCount,
+    public static Card chooseCardToDiscard(Player computer, Player player, Card newCard,
                                            List<Card> computerDiscardedCards, List<Card> playerDiscardedCards) {
         List<Card> all = new ArrayList<>(computer.hand);
+        List<Card> person = new ArrayList<>(player.hand);
         all.add(newCard);
 
         int bestScore = Integer.MIN_VALUE;
@@ -87,7 +88,7 @@ class ComputerAI {
         for (Card discard : all) {
             List<Card> temp = new ArrayList<>(all);
             temp.remove(discard);
-            int score = evaluateHand(temp, computerDiscardedCards, playerDiscardedCards);
+            int score = evaluateHand(person,temp, computerDiscardedCards, playerDiscardedCards);
             if (score > bestScore) {
                 bestScore = score;
                 bestToDiscard = discard;
@@ -96,13 +97,15 @@ class ComputerAI {
         return bestToDiscard;
     }
 
-    private static int evaluateHand(List<Card> hand, List<Card> computerDiscardedCards, List<Card> playerDiscardedCards) {
+    private static int evaluateHand(List<Card> person,List<Card> hand, List<Card> computerDiscardedCards, List<Card> playerDiscardedCards) {
         int score = 0;
 
         List<Card> allDiscardedCards = new ArrayList<>();
+        allDiscardedCards.addAll(person);
         allDiscardedCards.addAll(hand);
         allDiscardedCards.addAll(computerDiscardedCards);
         allDiscardedCards.addAll(playerDiscardedCards);
+
 
         Deck deck = new Deck();
         Iterator<Card> it = deck.cards.iterator();
@@ -123,7 +126,7 @@ class ComputerAI {
 
         String mostCommonSuit = Collections.max(suitCount.entrySet(), Map.Entry.comparingByValue()).getKey();
         int maxSuitCount = suitCount.get(mostCommonSuit);
-        score += maxSuitCount * 10;
+        score += maxSuitCount * 20;
 
         long matchingSuitLeft = deck.cards.stream().filter(c -> c.suit.equals(mostCommonSuit)).count();
         double ratio = (double) matchingSuitLeft / deck.cards.size();
@@ -263,7 +266,7 @@ class GameGUI extends JFrame {
             return;
         }
         info.append("Bilgisayar yeni kart çekti: " + compCard + "\n");
-        Card discard = ComputerAI.chooseCardToDiscard(computer, player, compCard, levelTarget, computerDiscards, playerDiscards);
+        Card discard = ComputerAI.chooseCardToDiscard(computer, player, compCard,  computerDiscards, playerDiscards);
         computer.hand.add(compCard);
         computer.hand.remove(discard);
         computerDiscards.add(discard);
@@ -293,8 +296,18 @@ class GameGUI extends JFrame {
     }
 
     void disableAll() {
-        setComponentsEnabled(playerPanel, false);
-        setComponentsEnabled(computerPanel, false);
+        playerPanel.removeAll();
+        computerPanel.removeAll();
+
+        for (Card c : computer.hand) {
+            JLabel label = new JLabel(c.toString());
+            label.setFont(new Font("Arial", Font.BOLD, 16));
+            label.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            label.setPreferredSize(new Dimension(60, 30));
+            computerPanel.add(label);
+        }
+        revalidate();
+        repaint();
     }
 
     private void setComponentsEnabled(Container container, boolean enabled) {
