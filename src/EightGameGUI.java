@@ -54,10 +54,6 @@ class Player {
         hand.add(c);
     }
 
-    public void discard(Card c) {
-        hand.remove(c);
-    }
-
     public int getTotalPoint() {
         return hand.stream().mapToInt(card -> card.point).sum();
     }
@@ -308,14 +304,5 @@ class GameGUI extends JFrame {
         }
         revalidate();
         repaint();
-    }
-
-    private void setComponentsEnabled(Container container, boolean enabled) {
-        for (Component component : container.getComponents()) {
-            component.setEnabled(enabled);
-            if (component instanceof Container) {
-                setComponentsEnabled((Container) component, enabled);
-            }
-        }
     }
 }
